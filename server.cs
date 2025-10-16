@@ -1,29 +1,35 @@
 ﻿using System;
+using System.IO;
 using System.Net;
 using System.Net.Sockets;
 using System.Text;
 
-class Server
+class FileServer
 {
     static void Main()
     {
-        var listener = new TcpListener(IPAddress.Any, 5000);
-        listener.Start();
-        Console.WriteLine("Server running...");
+        var server = new TcpListener(IPAddress.Any, 5000);
+        server.Start();
+        Console.WriteLine("Server ready...");
         while (true)
         {
-            var client = listener.AcceptTcpClient();
-            var ns = client.GetStream();
-            byte[] data = new byte[1024];
-            int bytes = ns.Read(data, 0, data.Length);
-            int n = int.Parse(Encoding.UTF8.GetString(data, 0, bytes));
-            string result = "";
-            for (int i = 1; i <= 10; i++)
-                result += $"{n} x {i} = {n * i}\n";
-            ns.Write(Encoding.UTF8.GetBytes(result));
-            ns.Close();
-            client.Close();
-            Console.WriteLine($"Table for {n} sent to client.");
+            using var client = server.AcceptTcpClient();
+            using var ns = client.GetStream();
+            byte[] nameBuf = new byte[1024];
+            int len = ns.Read(nameBuf);
+            string file = Encoding.UTF8.GetString(nameBuf, 0, len);
+            if (File.Exists(file))
+            {
+                byte[] data = File.ReadAllBytes(file);
+                ns.Write(data);
+                Console.WriteLine($"Sent:{file}");
+            }
+            else
+            {
+                byte[] msg = Encoding.UTF8.GetBytes("File not found");
+                ns.Write(msg);
+                Console.WriteLine($"Missing:{file}");
+            }
         }
     }
 }

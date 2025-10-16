@@ -1,19 +1,22 @@
 ﻿using System;
+using System.IO;
 using System.Net.Sockets;
 using System.Text;
-class Client
+class FileClient
 {
     static void Main()
     {
-        var client = new TcpClient("10.10.20.10", 5000);
-        var ns = client.GetStream();
-        Console.Write("Enter number:");
-        string num = Console.ReadLine();
-        ns.Write(Encoding.UTF8.GetBytes(num));
-        byte[] data = new byte[4096];
-        int bytes = ns.Read(data, 0, data.Length);
-        Console.WriteLine("\n"+Encoding.UTF8.GetString(data,0,bytes));
+        var c = new TcpClient("10.10.20.10", 5000);
+        var ns = c.GetStream();
+        Console.Write("Enter file name:");
+        string name = Console.ReadLine();
+        ns.Write(Encoding.UTF8.GetBytes(name));
+        byte[] buf = new byte[8192];
+        using var fs = new FileStream("Received_" + name, FileMode.Create);
+        int bytes;
+        while((bytes = ns.Read(buf))>0)fs.Write(buf, 0, bytes);
+        Console.WriteLine($"File saved as Received_{name}");
         ns.Close();
-        client.Close();
+        c.Close();
     }
 }
